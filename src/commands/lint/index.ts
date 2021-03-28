@@ -13,10 +13,10 @@ export default (program: CommanderStatic): void => {
                 await lint();
             } catch (e) {
                 if (e instanceof SchemaLintingError) {
-                    console.error(`!! ${e.name}: `);
-                    console.error(`${e.message}`);
+                    console.error(`${e.toString()}`);
                 } else {
                     console.error('UNKNOWN ERROR. PLEASE REPORT.');
+                    throw e;
                 }
             }
         });

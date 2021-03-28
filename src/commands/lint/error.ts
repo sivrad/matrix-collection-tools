@@ -12,12 +12,53 @@ export class SchemaLintingError extends Error {
     constructor(public name: string, public message: string) {
         super(`${name}: ${message}`);
     }
+
+    /**
+     * Represent the error as a string.
+     * @returns {string} The string representation.
+     */
+    toString(): string {
+        return `${this.name}: ${this.message}`;
+    }
+}
+
+/**
+ * Class to represent a file error.
+ */
+export class FileError extends SchemaLintingError {
+    /**
+     * Constructor for a file error.
+     * @param {string} name     Name of the file error.
+     * @param {string} message  Message of the file error.
+     * @param {string} filePath Path of the invalid file.
+     * @param {number} line     Line of the error.
+     * @param {number} column   Column of the error.
+     */
+    constructor(
+        name: string,
+        message: string,
+        public filePath: string,
+        public line = 0,
+        public column = 0,
+    ) {
+        super(name, message);
+    }
+
+    /**
+     * Represent the error as a string.
+     * @returns {string} The string representation.
+     */
+    toString(): string {
+        return `::error file=${this.filePath},line=${this.line},col=${this.column}::${this.message}`;
+    }
 }
 
 /**
  * Class to represent an invalid JSON schema.
  */
-export class InvalidJSONSchema extends SchemaLintingError {
+export class InvalidJSONSchema extends FileError {
+    private static REASON_UNKNOWN = 'Reason Unknown';
+
     /**
      * Constructor for an invalid JSON schema.
      * @param {string} filePath The path of the invalid file.
@@ -29,11 +70,10 @@ export class InvalidJSONSchema extends SchemaLintingError {
     ) {
         super(
             'InvalidJSONSchema',
-            `Invalid schema in file: '${filePath}'.\nReason: ${
-                Array.isArray(errors) && errors.length > 0
-                    ? errors[0].message
-                    : 'Unknown'
-            }`,
+            Array.isArray(errors) && errors.length > 0
+                ? errors[0].message || InvalidJSONSchema.REASON_UNKNOWN
+                : InvalidJSONSchema.REASON_UNKNOWN,
+            filePath,
         );
     }
 }
@@ -41,7 +81,7 @@ export class InvalidJSONSchema extends SchemaLintingError {
 /**
  * Class to represent an invalid file format error.
  */
-export class InvalidFileFormat extends SchemaLintingError {
+export class InvalidFileFormat extends FileError {
     /**
      * Constructor for an invalid file format.
      * @param {string} filePath Path to the invalid file.
@@ -50,7 +90,8 @@ export class InvalidFileFormat extends SchemaLintingError {
     constructor(public filePath: string, public requiredFileType: string) {
         super(
             'InvalidFileFormat',
-            `'${filePath}' must be of file type: '.${requiredFileType}'`,
+            `Must be of file type: '.${requiredFileType}'`,
+            filePath,
         );
     }
 }
@@ -74,12 +115,20 @@ export class FileNotFound extends SchemaLintingError {
 /**
  * Class to represent an invalid json syntax error.
  */
-export class InvalidJSONSyntax extends SchemaLintingError {
+export class InvalidJSONSyntax extends FileError {
     /**
      * Constructor for an invalid json syntax error.
      * @param {string} filePath Path to the invalid syntax file.
+     * @param {string} reason   Reason for the invalid syntax.
+     * @param {number} line     Line of the error.
+     * @param {number} column   Column of the error.
      */
-    constructor(public filePath: string) {
-        super('InvalidJSONSyntax', `Invalid JSON in file: '${filePath}'.`);
+    constructor(
+        public filePath: string,
+        public reason: string,
+        line = 0,
+        column = 0,
+    ) {
+        super('InvalidJSONSyntax', reason, filePath, line, column);
     }
 }

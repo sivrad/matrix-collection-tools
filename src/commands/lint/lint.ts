@@ -15,6 +15,7 @@ import {
     InvalidJSONSyntax,
 } from './error';
 import { existsSync, readdirSync, readFileSync } from 'fs';
+import { getSyntaxErrorDetails } from './util';
 
 const ajv = new Ajv();
 let jsonSchemas: Record<string, unknown>[] = [];
@@ -43,11 +44,16 @@ const getTypeFromFilePath = (filePath: string): FileType => {
 };
 
 const getFileContent = (filePath: string) => {
+    const content = readFileSync(filePath, 'utf-8');
     try {
-        return JSON.parse(readFileSync(filePath, 'utf-8'));
+        return JSON.parse(content);
     } catch (e) {
         if (e instanceof SyntaxError) {
-            throw new InvalidJSONSyntax(filePath);
+            const [reason, line, column] = getSyntaxErrorDetails(
+                e.message,
+                content,
+            );
+            throw new InvalidJSONSyntax(filePath, reason, line, column);
         } else {
             console.error('UNKNOWN ERROR: PLEASE REPORT');
             console.error(e);
