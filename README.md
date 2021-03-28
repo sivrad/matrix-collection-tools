@@ -1,8 +1,8 @@
 <p align="center"><img height="220px" src="https://avatars.githubusercontent.com/u/76859002?s=200&v=4" alt="Logo" /><p>
 
 <p align="center">
-  <strong>{Name}</strong><br />
-  <sub>{Description}</sub>
+  <strong>Matrix Collection Tools</strong><br />
+  <sub>Collection CI/CD.</sub>
 </p>
 
 <p align="center">
