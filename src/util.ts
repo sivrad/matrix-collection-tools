@@ -1,3 +1,5 @@
+import { readdirSync } from 'fs';
+import { TYPE_FILES_PATH } from './constants';
 import { Data } from './type';
 
 export const getRootOptions = (options: Data): any => {
@@ -19,3 +21,6 @@ export const capitalize = (text: string): string =>
 
 export const formatAsLabel = (text: string): string =>
     text.split('_').map(capitalize).join(' ');
+
+export const getTypeFiles = (directory: string): string[] =>
+    readdirSync(`${directory}/${TYPE_FILES_PATH}`);

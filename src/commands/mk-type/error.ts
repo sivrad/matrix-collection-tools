@@ -1,5 +1,5 @@
 /**
- * Class to representa type creation error.
+ * Class to represent a type creation error.
  */
 export class TypeCreationError extends Error {
     /**

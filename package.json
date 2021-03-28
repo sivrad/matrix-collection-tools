@@ -16,7 +16,8 @@
         "lint": "eslint src/**",
         "prepublish": "tsc",
         "start": "ts-node --transpile-only src/index.ts",
-        "start:d": "yarn start --dir ../matrix-collection-template/"
+        "start:d": "yarn start --dir ../matrix-collection-template/",
+        "mk-types": "ts-node ./scripts/mk-types.ts"
     },
     "devDependencies": {
         "@nix2/prettier-config": "^1.0.2",
@@ -26,6 +27,7 @@
         "@typescript-eslint/parser": "4.9.0",
         "eslint": "7.14.0",
         "eslint-plugin-jsdoc": "30.7.8",
+        "json-schema-to-typescript": "^10.1.3",
         "mocha": "8.2.1",
         "prettier": "2.1.2",
         "ts-node": "9.1.0",

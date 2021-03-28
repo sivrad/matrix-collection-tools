@@ -1,8 +1,9 @@
-import { COLLECTION_FILE_PATH, SCHEMA_FILES } from './constants';
+import { SCHEMA_FILES } from './constants';
 import {
     TYPE_FILES_PATH,
     MATRIX_SCHEMA_COLLECTION_URL,
     MATRIX_SCHEMA_TYPE_URL,
+    COLLECTION_FILE_PATH,
 } from '../../constants';
 import { FileType } from './type';
 import axios from 'axios';
@@ -14,8 +15,9 @@ import {
     InvalidJSONSyntax,
     NoInternetConnection,
 } from './error';
-import { existsSync, readdirSync, readFileSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import { getSyntaxErrorDetails } from './util';
+import { getTypeFiles } from '../../util';
 
 const ajv = new Ajv();
 let jsonSchemas: Record<string, unknown>[] = [];
@@ -77,9 +79,6 @@ const lintFile = (filePath: string): void => {
         validate = ajv.compile(schema);
     if (!validate(data)) throw new InvalidJSONSchema(filePath, validate.errors);
 };
-
-const getTypeFiles = (directory: string) =>
-    readdirSync(`${directory}/${TYPE_FILES_PATH}`);
 
 const checkFileExistance = (filePath: string) => {
     if (!existsSync(filePath)) throw new FileNotFound(filePath);
