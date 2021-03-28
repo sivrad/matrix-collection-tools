@@ -14,9 +14,9 @@
         "test-format": "prettier --check ./src/**",
         "test": "mocha -r ts-node/register tests/**",
         "lint": "eslint src/**",
-        "mk-docs": "typedoc --name \"Documentation\" && touch ./docs/.nojekyll",
         "prepublish": "tsc",
-        "start": "ts-node --transpile-only src/index.ts"
+        "start": "ts-node --transpile-only src/index.ts",
+        "start:d": "yarn start --dir ../matrix-collection-template/"
     },
     "devDependencies": {
         "@nix2/prettier-config": "^1.0.2",

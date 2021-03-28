@@ -2,7 +2,7 @@
 import { lint } from './lint';
 import { CommanderStatic } from 'commander';
 import { SchemaLintingError } from './error';
-import { getDirectory } from './util';
+import { getDirectory } from '../../util';
 
 export default (program: CommanderStatic): void => {
     program

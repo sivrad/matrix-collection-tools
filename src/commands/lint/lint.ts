@@ -1,10 +1,9 @@
+import { COLLECTION_FILE_PATH, SCHEMA_FILES } from './constants';
 import {
+    TYPE_FILES_PATH,
     MATRIX_SCHEMA_COLLECTION_URL,
     MATRIX_SCHEMA_TYPE_URL,
-    TYPE_FILES_PATH,
-    COLLECTION_FILE_PATH,
-    SCHEMA_FILES,
-} from './constants';
+} from '../../constants';
 import { FileType } from './type';
 import axios from 'axios';
 import Ajv from 'ajv';
@@ -116,6 +115,8 @@ const lintFiles = async (directory: string) => {
         checkFileType(typeFile);
         lintFile(typeFile);
     });
+    // Success message
+    console.log('Lint completed!');
 };
 
 export const lint = async (directory: string): Promise<void> => {
