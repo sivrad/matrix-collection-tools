@@ -13,6 +13,7 @@ import {
     FileNotFound,
     InvalidFileFormat,
     InvalidJSONSyntax,
+    NoInternetConnection,
 } from './error';
 import { existsSync, readdirSync, readFileSync } from 'fs';
 import { getSyntaxErrorDetails } from './util';
@@ -32,7 +33,15 @@ const getJSONSchemas = async () => {
 
 const getRemoteSchema = async (type: FileType) => {
     const url = getSchemaURL(type);
-    return (await axios.get(url)).data;
+    try {
+        return (await axios.get(url)).data;
+    } catch (e) {
+        if (e instanceof Error) {
+            if (e.message.includes('getaddrinfo'))
+                throw new NoInternetConnection();
+            throw e;
+        }
+    }
 };
 
 const getSchema = (type: FileType) => jsonSchemas[SCHEMA_FILES.indexOf(type)];
@@ -70,35 +79,45 @@ const lintFile = (filePath: string): void => {
     if (!validate(data)) throw new InvalidJSONSchema(filePath, validate.errors);
 };
 
-const getTypeFiles = () => readdirSync(TYPE_FILES_PATH);
+const getTypeFiles = (directory: string) =>
+    readdirSync(`${directory}/${TYPE_FILES_PATH}`);
 
 const checkFileExistance = (filePath: string) => {
     if (!existsSync(filePath)) throw new FileNotFound(filePath);
 };
+
+const makePath = (directory: string, filePath: string) =>
+    `${
+        directory.substr(directory.length - 1) == '/'
+            ? directory
+            : `${directory}/`
+    }${filePath}`;
 
 const checkFileType = (filePath: string) => {
     if (filePath.substr(filePath.length - 5) != '.json')
         throw new InvalidFileFormat(filePath, 'json');
 };
 
-const lintFiles = async () => {
+const lintFiles = async (directory: string) => {
     await getJSONSchemas();
+    // Function to the relative path
+    const path = (filePath: string) => makePath(directory, filePath);
     // Check './collection.json'
-    checkFileExistance(COLLECTION_FILE_PATH);
+    checkFileExistance(path(COLLECTION_FILE_PATH));
     // Lint  './collection.json'
-    lintFile(COLLECTION_FILE_PATH);
+    lintFile(path(COLLECTION_FILE_PATH));
     // Check './types/'
-    checkFileExistance(TYPE_FILES_PATH);
+    checkFileExistance(path(TYPE_FILES_PATH));
     // Get   './types/*'
-    const typeFiles = getTypeFiles();
+    const typeFiles = getTypeFiles(directory);
     // Check & Lint './types/*.json';
     typeFiles.forEach((typeFile) => {
-        typeFile = `${TYPE_FILES_PATH}${typeFile}`;
+        typeFile = `${path(TYPE_FILES_PATH)}${typeFile}`;
         checkFileType(typeFile);
         lintFile(typeFile);
     });
 };
 
-export const lint = async (): Promise<void> => {
-    await lintFiles();
+export const lint = async (directory: string): Promise<void> => {
+    await lintFiles(directory);
 };

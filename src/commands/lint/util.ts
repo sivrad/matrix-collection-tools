@@ -1,3 +1,5 @@
+import { Data } from './type';
+
 export const getSyntaxErrorDetails = (
     message: string,
     content: string,
@@ -27,3 +29,17 @@ export const getSyntaxErrorDetails = (
     }
     throw Error('doesnt work');
 };
+
+export const getRootOptions = (options: Data): any => {
+    while (
+        !!options.name && // name is defined
+        typeof options.name == 'function' && // name is a function
+        options.name() != 'matrix'
+    ) {
+        options = options.parent as Data;
+    }
+    return options;
+};
+
+export const getDirectory = (cmd: unknown): string =>
+    getRootOptions(cmd as Data)._optionValues.dir || './';

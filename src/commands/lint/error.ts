@@ -23,6 +23,18 @@ export class SchemaLintingError extends Error {
 }
 
 /**
+ * Class to represent a no internet error.
+ */
+export class NoInternetConnection extends SchemaLintingError {
+    /**
+     * Contructor for a no internet error.
+     */
+    constructor() {
+        super('NoInternet', 'No internet connection.');
+    }
+}
+
+/**
  * Class to represent a file error.
  */
 export class FileError extends SchemaLintingError {
