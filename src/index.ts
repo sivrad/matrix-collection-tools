@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-
 import * as program from 'commander';
 import { VERSION } from './constants';
 import * as commands from './commands';
