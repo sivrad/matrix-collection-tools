@@ -15,6 +15,7 @@ export default (program: CommanderStatic): void => {
             } catch (e) {
                 if (e instanceof SchemaLintingError) {
                     console.error(`${e.toString()}`);
+                    process.exit(1);
                 } else {
                     console.error('UNKNOWN ERROR. PLEASE REPORT.');
                     throw e;
