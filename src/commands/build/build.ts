@@ -105,6 +105,37 @@ class Builder {
     }
 
     /**
+     * Generate an interface field.
+     * @param {string} key   Field key or name.
+     * @param {Field}  field Field object.
+     * @returns {string} Interface field.
+     */
+    generateInterfaceField(key: string, field: Field) {
+        const isOptional = false;
+        console.log(key);
+        console.log(field);
+        return `
+    /**
+     * ${field.description || formatAsLabel(key)}
+     */
+    ${key}${isOptional ? '?' : ''}: ${field.type};\n`;
+    }
+
+    /**
+     * Generate interface based off a schema.
+     * @param {Type} schema The schema of the type.
+     * @returns {string} The created interface.
+     */
+    generateSchemaInterface(schema: Type) {
+        const fields = schema.fields || {};
+        let interfaceContent = '';
+        for (const key of Object.keys(fields)) {
+            interfaceContent += this.generateInterfaceField(key, fields[key]);
+        }
+        return interfaceContent;
+    }
+
+    /**
      * Generates the type class file content.
      * @param {Type} schema The schema of the type.
      * @returns {void}
@@ -112,14 +143,32 @@ class Builder {
     generateTypeClass(schema: Type) {
         const [packageName, parentName] = Builder.getParentInfo(schema.parent);
         const imports = new Imports().add(packageName, parentName);
+        const className = formatAsClassName(schema.name);
+        const serializedClassName = `Serialized${className}`;
 
         return `${imports.toString()}
+
+/**
+ * Serialized ${schema.label}
+ */
+export interface ${serializedClassName} {${this.generateSchemaInterface(
+            schema,
+        )}}
+
 /**
 * Matrix Type ${schema.label}
 *
 * ${schema.description}
 */
-export class ${formatAsClassName(schema.name)} extends ${parentName} {}`;
+export class ${className} extends ${parentName} {
+    /**
+     * Contructor for the ${schema.label}.
+     * @param {${serializedClassName}} data Serialized data.
+     */
+    constructor(data: ${serializedClassName}) {
+        super(data);
+    }
+}`;
     }
 
     /**
