@@ -143,7 +143,8 @@ class Builder {
      * @param {string} returns.description Description of the arugment.
      * @param {string} code The method code.
      * @param {string} options An object of options.
-     * @param {boolean} options.isPrivate If the method is private or not.
+     * @param {boolean} options.access The method access type.
+     * @param {boolean} options.isAsync   If the method is async or not.
      * @returns {string} The method code.
      */
     generateMethod(
@@ -159,7 +160,13 @@ class Builder {
             description: string;
         },
         code: string,
-        options = { isPrivate: false },
+        options: {
+            access?: 'public' | 'private' | 'protected';
+            isAsync?: boolean;
+        } = {
+            access: 'public',
+            isAsync: false,
+        },
     ): string {
         const signature = args
             .map((arg) => `${arg.name}: ${arg.type}`)
@@ -186,9 +193,11 @@ class Builder {
      * ${description}
 ${formatTable(argTable)}
      */
-    ${
-        options.isPrivate ? 'private ' : ''
-    }async ${name}(${signature}): Promise<${returns.type}> {
+    ${options.access != 'public' ? `${options.access} ` : ''}${
+            options.isAsync ? 'async ' : ''
+        }${name}(${signature}): ${
+            options.isAsync ? `Promise<${returns.type}>` : returns.type
+        } {
         ${code}
     }`;
     }
@@ -206,7 +215,7 @@ ${formatTable(argTable)}
                 `Retrive the properties (replace with label) ${key}.`,
                 [],
                 { type: field.type, description: field.description },
-                `return this.getField('${key}');`,
+                `return this.getField<${field.type}>('${key}');`,
             ),
             setterMethod = this.generateMethod(
                 `set${classNameFormat}`,
@@ -222,7 +231,7 @@ ${formatTable(argTable)}
                     type: 'void',
                     description: '',
                 },
-                `await this.setField("${key}", value);`,
+                `this.setField('${key}', value);`,
             );
 
         return [getterMethod, setterMethod].join('\n');
@@ -249,7 +258,28 @@ ${formatTable(argTable)}
             },
             'return await this.data[key];',
             {
-                isPrivate: true,
+                access: 'private',
+            },
+        );
+    }
+
+    /**
+     * Generate the `getTypeClass` method.
+     * @param {string} className Name of the class to return.
+     * @returns {string} The `getTypeClass` method.
+     */
+    generateGetTypeClassMethod(className: string): string {
+        return this.generateMethod(
+            'getTypeClass',
+            'Get the class of the type.',
+            [],
+            {
+                type: `typeof ${className}`,
+                description: 'The type class.',
+            },
+            `return ${className};`,
+            {
+                access: 'protected',
             },
         );
     }
@@ -260,28 +290,54 @@ ${formatTable(argTable)}
      * @returns {void}
      */
     generateTypeClass(schema: Type) {
+        // Get the package parent info.
         const [packageName, parentName] = Builder.getParentInfo(schema.parent);
-        const imports = new Imports().add(packageName, parentName);
+        // Set the interface parent type.
+        const serializedParentClassName =
+            parentName == 'MatrixBaseType'
+                ? 'Record<string, unknown>'
+                : `Serialized${parentName}`;
+        // Set the imports.
+        const imports = new Imports()
+            .add(packageName, parentName)
+            .add(packageName, 'Field');
+        // Import the parent interface if found.
+        if (parentName != 'MatrixBaseType')
+            imports.add(packageName, `Serialized${parentName}`);
+        // Get the class name.
         const className = formatAsClassName(schema.name);
         const serializedClassName = `Serialized${className}`;
 
-        const methods = Object.keys(schema.fields)
-            .map((key) => {
+        const methods = [this.generateGetTypeClassMethod(className)].concat(
+            Object.keys(schema.fields).map((key) => {
                 return this.generateFieldMethods(key, schema.fields[key]);
-            })
-            .join('\n');
+            }),
+        );
 
-        return `${imports.toString()}
-${
-    Object.keys(schema.fields || {}).length > 0
-        ? `/**
+        let serializedSchemaInterface, classFields;
+
+        if (Object.keys(schema.fields || {}).length > 0) {
+            serializedSchemaInterface = `/**
  * Serialized ${schema.label}.
  */
-export interface ${serializedClassName} {${this.generateSchemaInterface(
-              schema,
-          )}}`
-        : `export type ${serializedClassName} = Record<string, never>;`
-}
+export interface ${serializedClassName} extends ${serializedParentClassName} {${this.generateSchemaInterface(
+                schema,
+            )}}`;
+            classFields = `{\n${Object.keys(schema.fields)
+                .map(
+                    (key) => `        ${key}: {
+            type: '${schema.fields[key].type}',
+            description: '${schema.fields[key].description}',
+        },`,
+                )
+                .join('\n')}\n    }`;
+        } else {
+            serializedSchemaInterface = `export type ${serializedClassName} = Record<string, never>;`;
+            classFields = '{}';
+        }
+
+        return `${imports.toString()}
+${serializedSchemaInterface}
 
 /**
  * Matrix Type ${schema.label}.
@@ -289,6 +345,8 @@ export interface ${serializedClassName} {${this.generateSchemaInterface(
  * ${schema.description}
  */
 export class ${className} extends ${parentName} {
+    static classFields: Record<string, Field> = ${classFields};
+
     /**
      * Contructor for the ${schema.label}.
      * @param {${serializedClassName}} data Serialized data.
@@ -297,7 +355,7 @@ export class ${className} extends ${parentName} {
         super(data);
     }
     
-${methods}
+${methods.join('\n')}
 }`;
     }
 
