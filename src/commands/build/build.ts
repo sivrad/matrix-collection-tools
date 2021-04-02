@@ -34,7 +34,7 @@ class Builder {
      */
     static getParentInfo(parent?: string): [string, string] {
         // If no parent is given.
-        if (!parent) return ['@sivrad/matrix-collection', 'MatrixBaseThing'];
+        if (!parent) return ['./base', 'MatrixBaseType'];
         // If no '.'
         if (!parent.includes('.')) return [`.`, formatAsClassName(parent)];
         // Remote package.
@@ -200,14 +200,30 @@ ${formatTable(argTable)}
      * @returns {string} The methods needed for a field.
      */
     generateFieldMethods(key: string, field: Field): string {
-        const getterMethod = this.generateMethod(
-            `get${formatAsClassName(key)}`,
-            `Retrive the properties (replace with label) ${key}.`,
-            [],
-            { type: field.type, description: field.description },
-            `return this.getField('${key}');`,
-        );
-        const setterMethod = ``;
+        const classNameFormat = formatAsClassName(key),
+            getterMethod = this.generateMethod(
+                `get${classNameFormat}`,
+                `Retrive the properties (replace with label) ${key}.`,
+                [],
+                { type: field.type, description: field.description },
+                `return this.getField('${key}');`,
+            ),
+            setterMethod = this.generateMethod(
+                `set${classNameFormat}`,
+                `Set the ${key} field.`,
+                [
+                    {
+                        name: 'value',
+                        type: field.type,
+                        description: 'The value to set.',
+                    },
+                ],
+                {
+                    type: 'void',
+                    description: '',
+                },
+                `await this.setField("${key}", value);`,
+            );
 
         return [getterMethod, setterMethod].join('\n');
     }
@@ -231,7 +247,7 @@ ${formatTable(argTable)}
                 type: 'any',
                 description: 'The returned value of the field.',
             },
-            'return this.data[key];',
+            'return await this.data[key];',
             {
                 isPrivate: true,
             },
@@ -249,11 +265,11 @@ ${formatTable(argTable)}
         const className = formatAsClassName(schema.name);
         const serializedClassName = `Serialized${className}`;
 
-        const methods = `${Object.keys(schema.fields)
+        const methods = Object.keys(schema.fields)
             .map((key) => {
                 return this.generateFieldMethods(key, schema.fields[key]);
             })
-            .join('\n')}\n${this.generateGetFieldMethod()}`;
+            .join('\n');
 
         return `${imports.toString()}
 ${
