@@ -15,9 +15,11 @@
         "test": "mocha -r ts-node/register tests/**",
         "lint": "eslint src/**",
         "prepublish": "tsc",
+        "postinstall": "yarn mk-types",
         "start": "ts-node --transpile-only src/index.ts",
-        "start:d": "yarn start --dir ../matrix-collection-template/",
-        "mk-types": "ts-node ./scripts/mk-types.ts"
+        "start:d": "yarn start --dir ./matrix-collection-example/",
+        "mk-types": "ts-node ./scripts/mk-types.ts",
+        "mk-example": "git clone git@github.com:sivrad/matrix-collection-example.git"
     },
     "devDependencies": {
         "@nix2/prettier-config": "^1.0.4",
