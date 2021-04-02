@@ -20,7 +20,7 @@ export const capitalize = (text: string): string =>
     text[0].toUpperCase() + text.substr(1, text.length);
 
 export const formatAsLabel = (text: string): string =>
-    text.split('_').map(capitalize).join(' ');
+    text.split('-').map(capitalize).join(' ');
 
 export const getTypeFiles = (directory: string): string[] =>
     readdirSync(`${directory}/${TYPE_FILES_PATH}`);

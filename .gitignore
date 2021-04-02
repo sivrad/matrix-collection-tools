@@ -125,3 +125,6 @@ dist
 
 # Ignore generated types
 generated_types.ts
+
+# Ignore the example repo
+matrix-collection-example/

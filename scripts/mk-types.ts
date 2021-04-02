@@ -11,6 +11,7 @@ const getTypeSchema = async (): Promise<JSONSchema4> => {
 };
 
 const makeType = async () => {
+    console.log('Making types...');
     const types = await compile(await getTypeSchema(), 'Type');
     writeFileSync('./src/generated_types.ts', types);
 };
