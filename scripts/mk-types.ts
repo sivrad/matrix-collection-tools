@@ -10,9 +10,20 @@ const getTypeSchema = async (): Promise<JSONSchema4> => {
     return (await axios.get(TYPE_SCHEMA_URL)).data;
 };
 
+const removeOptional = (schema: any): JSONSchema4 => {
+    schema.required = Object.keys(schema.properties || {}).filter(
+        (key) => key != '$schema',
+    );
+    if (schema.definitions == undefined) return schema;
+    Object.keys(schema.definitions).map((key) => {
+        schema.definitions[key] = removeOptional(schema.definitions[key]);
+    });
+    return schema;
+};
+
 const makeType = async () => {
     console.log('Making types...');
-    const types = await compile(await getTypeSchema(), 'Type');
+    const types = await compile(removeOptional(await getTypeSchema()), 'Type');
     writeFileSync('./src/generated_types.ts', types);
 };
 
