@@ -8,6 +8,13 @@ import { formatAsClassName } from './util';
 import { Imports } from './imports';
 import { exec } from 'child_process';
 
+interface InternalField extends Field {
+    required: boolean;
+}
+interface InternalType extends Type {
+    fields: { [k: string]: InternalField };
+}
+
 /**
  * Builds the package.
  */
@@ -88,10 +95,19 @@ class Builder {
     /**
      * Get the schema.
      * @param {string} schemaPath Path to the schema.
-     * @returns {Type} The type schema.
+     * @returns {InternalType} The type schema.
      */
-    getSchema(schemaPath: string): Type {
+    getSchema(schemaPath: string): InternalType {
         const typeSchema = JSON.parse(readFileSync(schemaPath, 'utf-8'));
+        const getField = (key: string, field: InternalField): InternalField => {
+            return {
+                type: field.type,
+                label: field.label || formatAsLabel(key),
+                description: field.description || 'No description given.',
+                defaultValue: field.defaultValue || null,
+                required: !Object.keys(field).includes('defaultValue'),
+            };
+        };
         return {
             name: typeSchema.name as string,
             label:
@@ -100,7 +116,12 @@ class Builder {
                 (typeSchema.description as string) || 'No description given.',
             isAbstract: (typeSchema.isAbstract as boolean) || false,
             parent: typeSchema.parent as string,
-            fields: (typeSchema.fields as Record<string, Field>) || {},
+            fields: Object.assign(
+                {},
+                ...Object.keys(typeSchema.fields || {}).map((k) => ({
+                    [k]: getField(k, typeSchema.fields[k]),
+                })),
+            ),
         };
     }
 
@@ -110,13 +131,12 @@ class Builder {
      * @param {Field}  field Field object.
      * @returns {string} Interface field.
      */
-    generateInterfaceField(key: string, field: Field) {
-        const isOptional = false;
+    generateInterfaceField(key: string, field: InternalField) {
         return `
     /**
      * ${field.description || formatAsLabel(key)}
      */
-    ${key}${isOptional ? '?' : ''}: ${field.type};\n`;
+    ${key}${field.required ? '' : '?'}: ${field.type};\n`;
     }
 
     /**
@@ -124,7 +144,7 @@ class Builder {
      * @param {Type} schema The schema of the type.
      * @returns {string} The created interface.
      */
-    generateSchemaInterface(schema: Type) {
+    generateSchemaInterface(schema: InternalType) {
         const fields = schema.fields || {};
         let interfaceContent = '';
         for (const key of Object.keys(fields)) {
@@ -212,14 +232,14 @@ ${formatTable(argTable)}
         const classNameFormat = formatAsClassName(key),
             getterMethod = this.generateMethod(
                 `get${classNameFormat}`,
-                `Retrive the properties (replace with label) ${key}.`,
+                `Retrive the ${field.label} field.`,
                 [],
                 { type: field.type, description: field.description },
                 `return this.getField<${field.type}>('${key}');`,
             ),
             setterMethod = this.generateMethod(
                 `set${classNameFormat}`,
-                `Set the ${key} field.`,
+                `Set the ${field.label} field.`,
                 [
                     {
                         name: 'value',
@@ -289,7 +309,7 @@ ${formatTable(argTable)}
      * @param {Type} schema The schema of the type.
      * @returns {void}
      */
-    generateTypeClass(schema: Type) {
+    generateTypeClass(schema: InternalType) {
         // Get the package parent info.
         const [packageName, parentName] = Builder.getParentInfo(schema.parent);
         // Set the interface parent type.
@@ -327,7 +347,14 @@ export interface ${serializedClassName} extends ${serializedParentClassName} {${
                 .map(
                     (key) => `        ${key}: {
             type: '${schema.fields[key].type}',
+            label: '${schema.fields[key].label}',
             description: '${schema.fields[key].description}',
+            defaultValue: ${
+                typeof schema.fields[key].defaultValue == 'string'
+                    ? `'${schema.fields[key].defaultValue}'`
+                    : schema.fields[key].defaultValue
+            },
+            required: ${schema.fields[key].required}
         },`,
                 )
                 .join('\n')}\n    }`;

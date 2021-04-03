@@ -19,7 +19,9 @@ import { existsSync, readFileSync } from 'fs';
 import { getSyntaxErrorDetails } from './util';
 import { getTypeFiles } from '../../util';
 
-const ajv = new Ajv();
+const ajv = new Ajv({
+    allowUnionTypes: true,
+});
 let jsonSchemas: Record<string, unknown>[] = [];
 
 const getSchemaURL = (type: FileType) =>
