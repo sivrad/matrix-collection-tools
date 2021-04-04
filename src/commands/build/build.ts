@@ -1,11 +1,11 @@
 import { join } from 'path';
 import { mkdirSync, existsSync, readFileSync, writeFileSync } from 'fs';
-import { SOURCE_DIRECTORY } from './constants';
+import { SOURCE_DIRECTORY, TYPES_DIRECTORY } from './constants';
 import { formatAsLabel, formatTable, getTypeFiles } from '../../util';
 import { COLLECTION_FILE_PATH, TYPE_FILES_PATH } from '../../constants';
-import { Type, Field, ObjectOf } from '../../type';
+import { Type, Field, ObjectOf, Collection } from '../../type';
 import { formatAsClassName } from './util';
-import { Imports } from './imports';
+import { Imports } from './packages';
 import { exec } from 'child_process';
 
 interface InternalField extends Field {
@@ -22,7 +22,8 @@ class Builder {
     private typeFiles: string[] = [];
     private schemas: ObjectOf<Type> = {};
     private sourcePath: string;
-    private collectionID: string;
+    private typesPath: string;
+    private collection: Collection;
 
     /**
      * Constructor for the builder.
@@ -31,7 +32,8 @@ class Builder {
     constructor(private directory: string) {
         this.typeFiles = this.getTypeFiles();
         this.sourcePath = join(this.directory, SOURCE_DIRECTORY);
-        this.collectionID = this.getCollectionID();
+        this.typesPath = join(this.directory, TYPES_DIRECTORY);
+        this.collection = this.getCollection();
     }
 
     /**
@@ -41,7 +43,7 @@ class Builder {
      */
     static getParentInfo(parent?: string): [string, string] {
         // If no parent is given.
-        if (!parent) return ['./base', 'MatrixBaseType'];
+        if (!parent) return ['@sivrad/matrix', 'MatrixBaseType'];
         // If no '.'
         if (!parent.includes('.')) return [`.`, formatAsClassName(parent)];
         // Remote package.
@@ -53,13 +55,17 @@ class Builder {
     }
 
     /**
-     * Return the collection id.
+     * Return the collection schema.
      * @returns {string} Collection id.
      */
-    getCollectionID(): string {
-        return JSON.parse(
+    getCollection(): Collection {
+        // Read and parse collection.json.
+        const collection = JSON.parse(
             readFileSync(join(this.directory, COLLECTION_FILE_PATH), 'utf-8'),
-        ).id;
+        );
+        // Replace the icon if one is not given.
+        collection['icon'] = collection.icon || 'OBAMA';
+        return collection;
     }
 
     /**
@@ -78,18 +84,59 @@ class Builder {
     }
 
     /**
+     * Creates './src/types/'.
+     */
+    createTypesDirectory() {
+        if (!existsSync(this.typesPath)) mkdirSync(this.typesPath);
+    }
+
+    /**
      * Creates './src/index.ts'.
      */
     createIndexFile() {
         const indexFilePath = join(this.sourcePath, 'index.ts');
+        writeFileSync(
+            indexFilePath,
+            `export * from './types';\nexport { collection } from './collection';`,
+        );
+    }
+
+    /**
+     * Create types index file.
+     */
+    createTypesIndexFile() {
+        const indexFilePath = join(this.typesPath, 'index.ts');
         let indexFileContent = '';
         for (const schemaPath of Object.keys(this.schemas)) {
             const schema = this.schemas[schemaPath];
-            indexFileContent += `export { ${formatAsClassName(
-                schema.name,
-            )} } from './${schema.name}';`;
+            const classNameFormat = formatAsClassName(schema.name);
+            indexFileContent += `export { ${classNameFormat}, Serialized${classNameFormat} } from './${schema.name}';`;
         }
         writeFileSync(indexFilePath, indexFileContent);
+    }
+
+    /**
+     * Creates './src/collection.ts'.
+     */
+    createCollectionFile() {
+        const collectionPath = join(this.sourcePath, 'collection.ts');
+        const imports = new Imports()
+            .add('@sivrad/matrix', 'Collection')
+            .set('./types', '* as types');
+        writeFileSync(
+            collectionPath,
+            `${imports}
+/*
+ * The ${this.collection.label} Collection instance.
+ */
+export const collection = new Collection(
+    '${this.collection.id}',
+    '${this.collection.label}',
+    '${this.collection.description}',
+    '${this.collection.icon}',
+    Object.values(types)
+);`,
+        );
     }
 
     /**
@@ -312,18 +359,13 @@ ${formatTable(argTable)}
     generateTypeClass(schema: InternalType) {
         // Get the package parent info.
         const [packageName, parentName] = Builder.getParentInfo(schema.parent);
-        // Set the interface parent type.
-        const serializedParentClassName =
-            parentName == 'MatrixBaseType'
-                ? 'Record<string, unknown>'
-                : `Serialized${parentName}`;
         // Set the imports.
-        const imports = new Imports()
-            .add(packageName, parentName)
-            .add(packageName, 'Field');
-        // Import the parent interface if found.
-        if (parentName != 'MatrixBaseType')
-            imports.add(packageName, `Serialized${parentName}`);
+        const imports = new Imports().add(
+            packageName,
+            parentName,
+            'Field',
+            `Serialized${parentName}`,
+        );
         // Get the class name.
         const className = formatAsClassName(schema.name);
         const serializedClassName = `Serialized${className}`;
@@ -340,7 +382,7 @@ ${formatTable(argTable)}
             serializedSchemaInterface = `/**
  * Serialized ${schema.label}.
  */
-export interface ${serializedClassName} extends ${serializedParentClassName} {${this.generateSchemaInterface(
+export interface ${serializedClassName} extends Serialized${parentName} {${this.generateSchemaInterface(
                 schema,
             )}}`;
             classFields = `{\n${Object.keys(schema.fields)
@@ -431,7 +473,7 @@ ${methods.join('\n')}
         this.schemas[schemaPath] = schema;
         const fileContent = this.generateTypeClass(schema);
         writeFileSync(
-            join(this.directory, SOURCE_DIRECTORY, `${schema.name}.ts`),
+            join(this.directory, TYPES_DIRECTORY, `${schema.name}.ts`),
             fileContent,
         );
     }
@@ -442,10 +484,13 @@ ${methods.join('\n')}
     async build() {
         console.log('Building package');
         this.createSourceDirectory();
+        this.createTypesDirectory();
         this.typeFiles.forEach((file) =>
             this.buildType(join(this.directory, TYPE_FILES_PATH, file)),
         );
         this.createIndexFile();
+        this.createTypesIndexFile();
+        this.createCollectionFile();
         // TODO: make this better
         // await this.addDependencies();
         console.log('Package built!');

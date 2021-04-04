@@ -3,11 +3,11 @@ import axios from 'axios';
 import { JSONSchema4 } from 'json-schema';
 import { writeFileSync } from 'fs';
 
-const TYPE_SCHEMA_URL =
-    'https://raw.githubusercontent.com/sivrad/matrix-schema/main/type.json';
+const SCHEMA_URL =
+    'https://raw.githubusercontent.com/sivrad/matrix-schema/main/';
 
-const getTypeSchema = async (): Promise<JSONSchema4> => {
-    return (await axios.get(TYPE_SCHEMA_URL)).data;
+const getSchema = async (type: 'type' | 'collection'): Promise<JSONSchema4> => {
+    return (await axios.get(`${SCHEMA_URL}${type}.json`)).data;
 };
 
 const removeOptional = (schema: any): JSONSchema4 => {
@@ -23,8 +23,12 @@ const removeOptional = (schema: any): JSONSchema4 => {
 
 const makeType = async () => {
     console.log('Making types...');
-    const types = await compile(removeOptional(await getTypeSchema()), 'Type');
-    writeFileSync('./src/generated_types.ts', types);
+    const type = await compile(removeOptional(await getSchema('type')), 'Type');
+    const collection = await compile(
+        removeOptional(await getSchema('collection')),
+        'Collection',
+    );
+    writeFileSync('./src/generated_types.ts', `${type}\n${collection}`);
 };
 
 makeType();
