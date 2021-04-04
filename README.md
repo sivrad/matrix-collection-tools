@@ -12,7 +12,57 @@
 # Installation
 
 ```sh
-yarn add @sivrad/PACKAGE_NAME
+yarn add -D @sivrad/matrix-collection-tools
 ```
 
 # Usage
+
+## Lint the Collection
+
+This will compare files that match:
+
+-   `./collection.json`
+-   `./types/*.json`
+
+```sh
+matrix lint
+```
+
+Or using a script and yarn:
+
+```json
+"scripts": {
+  "lint": "yarn matrix lint"
+}
+```
+
+## Build the Collection Package
+
+This will build the files in `./src/`.
+
+```sh
+matrix build
+```
+
+## Make a new Type
+
+You can quickly create a new type with this command.
+
+```sh
+matrix mk-type YourTypeName
+```
+
+# Build
+
+The main function of this the collection tools is the Build functionality.
+
+This will create all the files for the collection package.
+
+These files include:
+
+-   `./src/`
+-   `./src/index.ts`
+-   `./src/collection.ts`
+-   `./src/types`
+-   `./src/types/index.ts`
+-   `./src/types/YourTypeName.ts`
