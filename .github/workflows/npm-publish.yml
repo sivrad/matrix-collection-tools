@@ -8,11 +8,27 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v2
-            - uses: actions/setup-node@v1
-              with:
-                  node-version: 12
-                  registry-url: https://registry.npmjs.org/
-            - run: yarn install
-            - run: npm publish --access public
-              env:
-                  NODE_AUTH_TOKEN: ${{secrets.NPM_AUTH_TOKEN}}
+            - name: Send Dispatch to Update Collections
+              run: |
+                  curl --location --request POST 'https://api.github.com/repos/sivrad/matrix-collection-example/actions/workflows/update-tools.yml/dispatches' \
+                  --header 'Accept: application/vnd.github.everest-preview+json' \
+                  --header 'Authorization: token ${{ secrets.REPO_ACCESS_TOKEN }}' \
+                  --header 'Content-Type: application/json' \
+                  --data-raw '{
+                      "ref": "main"
+                  }'
+            # - uses: actions/setup-node@v1
+            #   with:
+            #       node-version: 12
+            #       registry-url: https://registry.npmjs.org/
+            # - run: yarn install
+            # - run: npm publish --access public
+            #   env:
+            #       NODE_AUTH_TOKEN: ${{secrets.NPM_AUTH_TOKEN}}
+            # - name: PING - Dispatch initiating repository event
+            #   if: github.event.action != 'release'
+            #   run: |
+            #       curl -X POST https://api.github.com/repos/sivrad/matrix-collection-tools/dispatches \
+            #       -H 'Accept: application/vnd.github.everest-preview+json' \
+            #       -u ${{ secrets.ACCESS_TOKEN }} \
+            #       --data '{"event_type": "ping", "client_payload": { "repository": "'"$GITHUB_REPOSITORY"'" }}'
