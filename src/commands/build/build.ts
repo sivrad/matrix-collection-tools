@@ -1,6 +1,6 @@
 import { join } from 'path';
 import { mkdirSync, existsSync, readFileSync, writeFileSync } from 'fs';
-import { SOURCE_DIRECTORY, TYPES_DIRECTORY } from './constants';
+import { BUILT_IN_TYPES, SOURCE_DIRECTORY, TYPES_DIRECTORY } from './constants';
 import { formatAsLabel, formatTable, getTypeFiles } from '../../util';
 import { COLLECTION_FILE_PATH, TYPE_FILES_PATH } from '../../constants';
 import { Type, Field, ObjectOf, Collection } from '../../type';
@@ -110,7 +110,7 @@ class Builder {
         for (const schemaPath of Object.keys(this.schemas)) {
             const schema = this.schemas[schemaPath];
             const classNameFormat = formatAsClassName(schema.name);
-            indexFileContent += `export { ${classNameFormat}, Serialized${classNameFormat} } from './${schema.name}';`;
+            indexFileContent += `export { ${classNameFormat}, Serialized${classNameFormat} } from './${schema.name}';\n`;
         }
         writeFileSync(indexFilePath, indexFileContent);
     }
@@ -352,6 +352,41 @@ ${formatTable(argTable)}
     }
 
     /**
+     * Isolate a type into seperate types.
+     * @param   {string}   type The type expression.
+     * @returns {string[]}      An array of types.
+     */
+    isolateFieldTypes(type: string): string[] {
+        type = type.replace(/ /g, '');
+        return type.split('|').map((t) => t.replace(/\[\]/g, ''));
+    }
+
+    /**
+     * Import all external types from the fields of a type.
+     * @param {InternalType} schema  The schema.
+     * @param {Imports}      imports The imports instance.
+     */
+    importExternalFieldTypes(schema: InternalType, imports: Imports): void {
+        for (const [, field] of Object.entries(schema.fields)) {
+            const types = this.isolateFieldTypes(field.type).filter(
+                (type) =>
+                    BUILT_IN_TYPES.indexOf(type) == -1 && type != schema.name,
+            );
+            for (const typeName of types) {
+                const typeNameParts = typeName.split('.');
+                const [pkg, type] =
+                    typeNameParts.length == 2
+                        ? [
+                              `@sivrad/matrix-collection-${typeNameParts[0]}`,
+                              typeNameParts[1],
+                          ]
+                        : ['.', typeName];
+                imports.add(pkg, type);
+            }
+        }
+    }
+
+    /**
      * Generates the type class file content.
      * @param {Type} schema The schema of the type.
      * @returns {void}
@@ -366,6 +401,8 @@ ${formatTable(argTable)}
             'Field',
             `Serialized${parentName}`,
         );
+        // Import all the external field types.
+        this.importExternalFieldTypes(schema, imports);
         // Get the class name.
         const className = formatAsClassName(schema.name);
         const serializedClassName = `Serialized${className}`;
@@ -401,7 +438,7 @@ export interface ${serializedClassName} extends Serialized${parentName} {${this.
                 )
                 .join('\n')}\n    }`;
         } else {
-            serializedSchemaInterface = `export type ${serializedClassName} = Record<string, never>;`;
+            serializedSchemaInterface = `export type ${serializedClassName} = SerializedMatrixBaseType;`;
             classFields = '{}';
         }
 
