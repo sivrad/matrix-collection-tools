@@ -16,6 +16,10 @@ jobs:
                   registry-url: https://registry.npmjs.org/
             - name: Yarn Install
               run: yarn install
+            - name: Make Types
+              run: yarn mk-types
+            - name: Build
+              run: yarn tsc
             - name: Publish to NPM
               run: npm publish --access public
               env:
