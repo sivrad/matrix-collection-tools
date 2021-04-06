@@ -15,7 +15,6 @@
         "test": "mocha -r ts-node/register tests/**",
         "lint": "eslint src/**",
         "prepublish": "tsc",
-        "postinstall": "yarn mk-types",
         "start": "ts-node --transpile-only src/index.ts",
         "start:d": "yarn start --dir ./matrix-collection-example/",
         "mk-types": "ts-node ./scripts/mk-types.ts",
