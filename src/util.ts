@@ -4,8 +4,8 @@ import { Data } from './type';
 
 export const getRootOptions = (options: Data): any => {
     while (
-        !!options.name && // name is defined
-        typeof options.name == 'function' && // name is a function
+        !!options.name && // Name is defined
+        typeof options.name == 'function' && // Name is a function
         options.name() != 'matrix'
     ) {
         options = options.parent as Data;
