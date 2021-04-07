@@ -1,6 +1,6 @@
 {
     "name": "@sivrad/matrix-collection-tools",
-    "version": "1.0.12",
+    "version": "1.0.13",
     "description": "Collection CI/CD.",
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
@@ -17,7 +17,8 @@
         "start": "ts-node --transpile-only src/index.ts",
         "start:d": "yarn start --dir ./matrix-collection-example/",
         "mk-types": "ts-node ./scripts/mk-types.ts",
-        "mk-example": "git clone git@github.com:sivrad/matrix-collection-example.git"
+        "mk-example": "git clone git@github.com:sivrad/matrix-collection-example.git",
+        "patch": "yarn version --new-version patch"
     },
     "devDependencies": {
         "@nix2/prettier-config": "^1.0.4",
