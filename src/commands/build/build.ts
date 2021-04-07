@@ -452,7 +452,7 @@ ${serializedSchemaInterface}
  */
 export class ${className} extends ${parentName} {
     static classFields: Record<string, Field> = ${classFields};
-    protected static classInformation = {
+    public static _classInformation = {
         name: '${schema.name}',
         label: '${schema.label}',
         description: '${schema.description}',
