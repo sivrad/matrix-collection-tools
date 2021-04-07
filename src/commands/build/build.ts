@@ -528,7 +528,7 @@ ${methods.join('\n')}
         this.typeFiles.forEach((file) =>
             this.buildType(join(this.directory, TYPE_FILES_PATH, file)),
         );
-        this.createIndexFile();
+        // this.createIndexFile();
         this.createTypesIndexFile();
         this.createCollectionFile();
         // TODO: make this better
