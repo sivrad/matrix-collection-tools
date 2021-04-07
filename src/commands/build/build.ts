@@ -345,9 +345,6 @@ ${formatTable(argTable)}
                 description: 'The type class.',
             },
             `return ${className};`,
-            {
-                access: 'protected',
-            },
         );
     }
 
