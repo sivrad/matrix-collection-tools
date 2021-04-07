@@ -452,6 +452,12 @@ ${serializedSchemaInterface}
  */
 export class ${className} extends ${parentName} {
     static classFields: Record<string, Field> = ${classFields};
+    protected static classInformation = {
+        name: '${schema.name}',
+        label: '${schema.label}',
+        description: '${schema.description}',
+        icon: '',
+    };
 
     /**
      * Contructor for the ${schema.label}.
