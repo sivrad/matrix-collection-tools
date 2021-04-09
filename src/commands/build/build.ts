@@ -110,7 +110,7 @@ class Builder {
         for (const schemaPath of Object.keys(this.schemas)) {
             const schema = this.schemas[schemaPath];
             const classNameFormat = formatAsClassName(schema.name);
-            indexFileContent += `export { ${classNameFormat}, Serialized${classNameFormat} } from './${schema.name}';\n`;
+            indexFileContent += `export { ${classNameFormat}, ${classNameFormat}Data } from './${schema.name}';\n`;
         }
         writeFileSync(indexFilePath, indexFileContent);
     }
@@ -396,13 +396,13 @@ ${formatTable(argTable)}
             packageName,
             parentName,
             'Field',
-            `Serialized${parentName}`,
+            `${parentName}Data`,
         );
         // Import all the external field types.
         this.importExternalFieldTypes(schema, imports);
         // Get the class name.
         const className = formatAsClassName(schema.name);
-        const serializedClassName = `Serialized${className}`;
+        const serializedClassName = `${className}Data`;
 
         const methods = [this.generateGetTypeClassMethod(className)].concat(
             Object.keys(schema.fields).map((key) => {
@@ -416,7 +416,7 @@ ${formatTable(argTable)}
             serializedSchemaInterface = `/**
  * Serialized ${schema.label}.
  */
-export interface ${serializedClassName} extends Serialized${parentName} {${this.generateSchemaInterface(
+export interface ${serializedClassName} extends ${parentName}Data {${this.generateSchemaInterface(
                 schema,
             )}}`;
             classFields = `{\n${Object.keys(schema.fields)
@@ -435,7 +435,7 @@ export interface ${serializedClassName} extends Serialized${parentName} {${this.
                 )
                 .join('\n')}\n    }`;
         } else {
-            serializedSchemaInterface = `export type ${serializedClassName} = SerializedMatrixBaseType;`;
+            serializedSchemaInterface = `export type ${serializedClassName} = MatrixBaseTypeData;`;
             classFields = '{}';
         }
 
