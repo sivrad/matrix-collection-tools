@@ -384,7 +384,7 @@ ${formatTable(argTable)}
                 type: 'T',
                 description: 'The new instance of the type.',
             },
-            'return await this.get<T>(id);',
+            'return await super.get<T>(id);',
             {
                 isStatic: true,
                 isAsync: true,
@@ -406,7 +406,7 @@ ${formatTable(argTable)}
                 type: 'T[]',
                 description: 'All the new instances.',
             },
-            'return await this.getAll<T>();',
+            'return await super.getAll<T>();',
             {
                 isStatic: true,
                 isAsync: true,
