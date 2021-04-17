@@ -202,17 +202,22 @@ export const collection = new Collection(
 
     /**
      * Generate a method from a template.
-     * @param {string} name Name of the method.
-     * @param {string} description Description of the method.
-     * @param {{name: string, type: string, description: string}[]} args A list of args objects.
-     * @param {obj} returns An returns object.
-     * @param {string} returns.type Type of the argument.
-     * @param {string} returns.description Description of the arugment.
-     * @param {string} code The method code.
-     * @param {string} options An object of options.
-     * @param {boolean} options.access The method access type.
-     * @param {boolean} options.isAsync   If the method is async or not.
-     * @returns {string} The method code.
+     * @param   {string}  name                Name of the method.
+     * @param   {string}  description         Description of the method.
+     * @param   {obj[]}   args                A list of args objects.
+     * @param   {string}  args.name           The argument name.
+     * @param   {string}  args.type           The argument type.
+     * @param   {string}  args.description    The argument description.
+     * @param   {obj}     returns             An returns object.
+     * @param   {string}  returns.type        Type of the argument.
+     * @param   {string}  returns.description Description of the arugment.
+     * @param   {string}  code                The method code.
+     * @param   {string}  options             An object of options.
+     * @param   {boolean} options.access      The method access type.
+     * @param   {boolean} options.isAsync     If the method is async or not.
+     * @param   {boolean} options.isStatic    If the method is async or not.
+     * @param   {string}  options.generic     The method generic.
+     * @returns {string}                      The method code.
      */
     generateMethod(
         name: string,
@@ -230,9 +235,13 @@ export const collection = new Collection(
         options: {
             access?: 'public' | 'private' | 'protected';
             isAsync?: boolean;
+            isStatic?: boolean;
+            generic?: string;
         } = {
             access: 'public',
             isAsync: false,
+            isStatic: false,
+            generic: undefined,
         },
     ): string {
         const signature = args
@@ -260,9 +269,13 @@ export const collection = new Collection(
      * ${description}
 ${formatTable(argTable)}
      */
-    ${options.access != 'public' ? `${options.access} ` : ''}${
+    ${
+        options.access && options.access != 'public' ? `${options.access} ` : ''
+    }${options.isStatic ? 'static ' : ''}${
             options.isAsync ? 'async ' : ''
-        }${name}(${signature}): ${
+        }${name}${
+            options.generic ? `<${options.generic}>` : ''
+        }(${signature}): ${
             options.isAsync ? `Promise<${returns.type}>` : returns.type
         } {
         ${code}
@@ -349,6 +362,57 @@ ${formatTable(argTable)}
     }
 
     /**
+     * Generate the `get` method.
+     * @param {string} className Name of the class type.
+     * @returns {string} The `get` method.
+     */
+    generateGetMethod(className: string): string {
+        return this.generateMethod(
+            'get',
+            'Get an instance of the type from the ID.',
+            [
+                {
+                    name: 'id',
+                    type: 'string',
+                    description: 'The ID of the instance.',
+                },
+            ],
+            {
+                type: 'T',
+                description: 'The new instance of the type.',
+            },
+            'return await this.get<T>(id);',
+            {
+                isStatic: true,
+                isAsync: true,
+                generic: `T extends MatrixBaseType = ${className}`,
+            },
+        );
+    }
+    /**
+     * Generate the `getAll` method.
+     * @param {string} className Name of the class type.
+     * @returns {string} The `getAll` method.
+     */
+    generateGetAllMethod(className: string): string {
+        return this.generateMethod(
+            'getAll',
+            'Get all the instances of a type.',
+            [],
+            {
+                type: 'T[]',
+                description: 'All the new instances.',
+            },
+            'return await this.getAll<T>();',
+            {
+                isStatic: true,
+                isAsync: true,
+                generic: `T extends MatrixBaseType = ${className}`,
+            },
+        );
+    }
+
+    /**
      * Isolate a type into seperate types.
      * @param   {string}   type The type expression.
      * @returns {string[]}      An array of types.
@@ -404,7 +468,11 @@ ${formatTable(argTable)}
         const className = formatAsClassName(schema.name);
         const serializedClassName = `${className}Data`;
 
-        const methods = [this.generateGetTypeClassMethod(className)].concat(
+        const methods = [
+            this.generateGetMethod(className),
+            this.generateGetAllMethod(className),
+            this.generateGetTypeClassMethod(className),
+        ].concat(
             Object.keys(schema.fields).map((key) => {
                 return this.generateFieldMethods(key, schema.fields[key]);
             }),
