@@ -354,10 +354,13 @@ ${formatTable(argTable)}
             'Get the class of the type.',
             [],
             {
-                type: `typeof ${className}`,
+                type: 'T',
                 description: 'The type class.',
             },
-            `return ${className};`,
+            `return (${className} as unknown) as T;`,
+            {
+                generic: `T = typeof ${className}`,
+            },
         );
     }
 
@@ -459,9 +462,11 @@ ${formatTable(argTable)}
         const imports = new Imports().add(
             packageName,
             parentName,
-            'Field',
             `${parentName}Data`,
         );
+        imports.add('@sivrad/matrix', 'Field');
+        if (packageName != '@sivrad/matrix')
+            imports.add('@sivrad/matrix', 'MatrixBaseType');
         // Import all the external field types.
         this.importExternalFieldTypes(schema, imports);
         // Get the class name.
