@@ -55,6 +55,20 @@ class Builder {
     }
 
     /**
+     * Remove the collection name from a type.
+     * @function sanitizeType
+     * @memberof Builder
+     * @static
+     * @param {string} type The type.
+     * @returns {string} The sanizized type.
+     * @example
+     * Builder.sanitize('std.Person') // 'Person'
+     */
+    static sanitizeType(type: string): string {
+        return type.includes('.') ? type.split('.')[1] : type;
+    }
+
+    /**
      * Return the collection schema.
      * @returns {string} Collection id.
      */
@@ -183,7 +197,7 @@ export const collection = new Collection(
     /**
      * ${field.description || formatAsLabel(key)}
      */
-    ${key}${field.required ? '' : '?'}: ${field.type};\n`;
+    ${key}${field.required ? '' : '?'}: ${Builder.sanitizeType(field.type)};\n`;
     }
 
     /**
@@ -290,12 +304,13 @@ ${formatTable(argTable)}
      */
     generateFieldMethods(key: string, field: Field): string {
         const classNameFormat = formatAsClassName(key),
+            sanizizedType = Builder.sanitizeType(field.type),
             getterMethod = this.generateMethod(
                 `get${classNameFormat}`,
                 `Retrive the ${field.label} field.`,
                 [],
-                { type: field.type, description: field.description },
-                `return this.getField<${field.type}>('${key}');`,
+                { type: sanizizedType, description: field.description },
+                `return this.getField<${sanizizedType}>('${key}');`,
             ),
             setterMethod = this.generateMethod(
                 `set${classNameFormat}`,
@@ -303,7 +318,7 @@ ${formatTable(argTable)}
                 [
                     {
                         name: 'value',
-                        type: field.type,
+                        type: sanizizedType,
                         description: 'The value to set.',
                     },
                 ],
@@ -531,9 +546,9 @@ export class ${className} extends ${parentName} {
 
     /**
      * Contructor for the ${schema.label}.
-     * @param {${serializedClassName}} data Serialized data.
+     * @param {${serializedClassName} | string} data Serialized data or instance ID.
      */
-    constructor(data: ${serializedClassName}) {
+    constructor(data: ${serializedClassName} | string) {
         super(data);
     }
     
